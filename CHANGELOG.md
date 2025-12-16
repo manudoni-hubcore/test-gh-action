@@ -19,6 +19,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.0.2] - 2025-12-16
+
+### Changed
+
+- Aggiornati i nomi dei branch nella GitHub Action di sincronizzazione (`sync_branches`).
+
+### Fixed
+
+- Correzione nella configurazione dei branch per la sincronizzazione automatica.
+
 ## [0.0.1] - 2025-12-16
 
 ### Added
