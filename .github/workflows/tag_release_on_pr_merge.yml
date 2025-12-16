@@ -7,6 +7,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   tag_release:
     if: |
@@ -20,6 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Get release version from branch
         id: get_version
         run: |
@@ -34,7 +39,15 @@ jobs:
           VERSION=$(echo "$VERSION" | sed 's/^v//')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Found version: $VERSION"
+      
+      - name: Set up authentication
+        run: git config --global url."https://${GITHUB_TOKEN}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create tag
+        id: create_tag_step
+        continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -42,3 +55,25 @@ jobs:
           echo "Creating tag: $TAG_NAME"
           git tag "$TAG_NAME"
           git push origin "$TAG_NAME"
+
+      - name: Comment on PR (tag created successfully)
+        if: steps.create_tag_step.outcome == 'success'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ✅ **Release Tag Created Successfully**
+
+            The tag `${{ env.TAG_PREFIX }}${{ steps.get_version.outputs.version }}` has been automatically created for this release.
+
+      - name: Comment on PR (tag creation failed)
+        if: steps.create_tag_step.outcome == 'failure'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ❌ **Release Tag Creation Failed**
+
+            There was an error while creating the tag `${{ env.TAG_PREFIX }}${{ steps.get_version.outputs.version }}`. Please check the workflow logs for more details.
