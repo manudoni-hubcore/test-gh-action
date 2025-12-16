@@ -41,7 +41,7 @@ jobs:
 
       - name: Fetch branches
         run: |
-          git fetch --all
+          git fetch origin main:main
 
       - name: Attempt automatic merge
         id: auto-merge
