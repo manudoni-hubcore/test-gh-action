@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.0.4] - 2025-12-16
+
+### Fixed
+
+- Aggiornato il comando fetch nel workflow `sync_branches` per recuperare tutti i branch.
+
 ## [0.0.3] - 2025-12-16
 
 ### Fixed
