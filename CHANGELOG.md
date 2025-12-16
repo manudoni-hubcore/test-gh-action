@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.0.3] - 2025-12-16
+
+### Fixed
+
+- Risolto errore di fetch nel workflow `sync_branches`.
+
 ## [0.0.2] - 2025-12-16
 
 ### Changed

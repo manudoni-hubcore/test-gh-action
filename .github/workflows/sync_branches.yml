@@ -42,7 +42,6 @@ jobs:
       - name: Fetch branches
         run: |
           git fetch origin main:main
-          git fetch origin preprod:preprod
 
       - name: Attempt automatic merge
         id: auto-merge
