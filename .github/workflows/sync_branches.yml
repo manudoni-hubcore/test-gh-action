@@ -1,21 +1,21 @@
-# This workflow automatically synchronizes the production branch (ditahc8) with
-# the pre-production branch (ditahc8-ppr) when a PR is merged to ditahc8.
+# This workflow automatically synchronizes the production branch (main) with
+# the pre-production branch (preprod) when a PR is merged to main.
 #
 # Workflow behavior:
-# 1. When a PR is merged to ditahc8, attempt automatic merge to ditahc8-ppr
-# 2. If successful: Push directly with commit message "chore: merge ditahc8 into ditahc8-ppr after release"
+# 1. When a PR is merged to main, attempt automatic merge to preprod
+# 2. If successful: Push directly with commit message "chore: merge main into preprod after release"
 # 3. If conflicts occur:
 #    - Create a fallback branch named release-sync-YYYYMMDD-HHMMSS
-#    - Merge ditahc8 into the fallback branch with commit "chore: fallback merge ditahc8 into <branch>"
-#    - Create a PR from the fallback branch to ditahc8-ppr for manual resolution
+#    - Merge main into the fallback branch with commit "chore: fallback merge main into <branch>"
+#    - Create a PR from the fallback branch to preprod for manual resolution
 
-name: Sync ditahc8 to ditahc8-ppr
+name: Sync main to preprod
 
 on:
   pull_request:
     types: [closed]
     branches:
-      - ditahc8
+      - main
 
 jobs:
   sync-branches:
@@ -41,17 +41,17 @@ jobs:
 
       - name: Fetch branches
         run: |
-          git fetch origin ditahc8:ditahc8
-          git fetch origin ditahc8-ppr:ditahc8-ppr
+          git fetch origin main:main
+          git fetch origin preprod:preprod
 
       - name: Attempt automatic merge
         id: auto-merge
         run: |
           # Checkout the target branch
-          git checkout ditahc8-ppr
+          git checkout preprod
 
-          # Attempt to merge ditahc8 into ditahc8-ppr
-          if git merge ditahc8 --no-edit -m "chore: merge ditahc8 into ditahc8-ppr after release"; then
+          # Attempt to merge main into preprod
+          if git merge main --no-edit -m "chore: merge main into preprod after release"; then
             echo "merge_status=success" >> $GITHUB_OUTPUT
             echo "Merge successful"
           else
@@ -64,8 +64,8 @@ jobs:
       - name: Push successful merge
         if: steps.auto-merge.outputs.merge_status == 'success'
         run: |
-          git push origin ditahc8-ppr
-          echo "Successfully pushed merge to ditahc8-ppr"
+          git push origin preprod
+          echo "Successfully pushed merge to preprod"
 
       - name: Create fallback branch on conflict
         if: steps.auto-merge.outputs.merge_status == 'failed'
@@ -76,11 +76,11 @@ jobs:
           FALLBACK_BRANCH="release-sync-${TIMESTAMP}"
           echo "fallback_branch=${FALLBACK_BRANCH}" >> $GITHUB_OUTPUT
 
-          # Create and checkout the fallback branch from ditahc8-ppr
-          git checkout -b ${FALLBACK_BRANCH} ditahc8-ppr
+          # Create and checkout the fallback branch from preprod
+          git checkout -b ${FALLBACK_BRANCH} preprod
 
           # Attempt merge with fallback message
-          git merge ditahc8 --no-edit -m "chore: fallback merge ditahc8 into ${FALLBACK_BRANCH}" || true
+          git merge main --no-edit -m "chore: fallback merge main into ${FALLBACK_BRANCH}" || true
 
           # Push the fallback branch
           git push origin ${FALLBACK_BRANCH}
@@ -95,15 +95,15 @@ jobs:
 
           # Create PR using GitHub CLI
           gh pr create \
-            --base ditahc8-ppr \
+            --base preprod \
             --head ${FALLBACK_BRANCH} \
-            --title "chore: resolve merge conflicts from ditahc8 to ditahc8-ppr" \
+            --title "chore: resolve merge conflicts from main to preprod" \
             --body "## Automatic Merge Conflict Resolution Required
 
-          This PR was automatically created because the automatic merge from \`ditahc8\` to \`ditahc8-ppr\` failed due to conflicts.
+          This PR was automatically created because the automatic merge from \`main\` to \`preprod\` failed due to conflicts.
 
-          **Source Branch:** \`ditahc8\`
-          **Target Branch:** \`ditahc8-ppr\`
+          **Source Branch:** \`main\`
+          **Target Branch:** \`preprod\`
           **Fallback Branch:** \`${FALLBACK_BRANCH}\`
 
           ### Action Required
@@ -126,7 +126,7 @@ jobs:
           body: |
             ✅ **Branch Sync Successful**
 
-            The branch `ditahc8` has been automatically merged into `ditahc8-ppr` without conflicts.
+            The branch `main` has been automatically merged into `preprod` without conflicts.
 
       - name: Comment on original PR (conflict)
         if: steps.auto-merge.outputs.merge_status == 'failed'
@@ -137,7 +137,7 @@ jobs:
           body: |
             ⚠️ **Branch Sync Requires Manual Intervention**
 
-            The automatic merge from `ditahc8` to `ditahc8-ppr` failed due to conflicts.
+            The automatic merge from `main` to `preprod` failed due to conflicts.
 
             A fallback branch `${{ steps.fallback.outputs.fallback_branch }}` has been created.
             Please check the new PR for resolving these conflicts.
