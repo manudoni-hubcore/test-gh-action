@@ -1,0 +1,44 @@
+name: Tag Release on Merge to Main
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+jobs:
+  tag_release:
+    if: |
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    runs-on: ubuntu-latest
+    env:
+      TAG_PREFIX: 'release_'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get release version from branch
+        id: get_version
+        run: |
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          # Extract semver2 from branch name (e.g., release/v1.0.0 or release/something-v1.0.0-alpha)
+          VERSION=$(echo "$BRANCH_NAME" | grep -oE '(v?[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9\.]+)?(\+[a-zA-Z0-9\.]+)?)')
+          if [ -z "$VERSION" ]; then
+            echo "Error: No valid semver2 version found in branch name"
+            exit 1
+          fi
+          # Remove leading 'v' if present
+          VERSION=$(echo "$VERSION" | sed 's/^v//')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Found version: $VERSION"
+      - name: Create tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          TAG_NAME="${{ env.TAG_PREFIX }}${{ steps.get_version.outputs.version }}"
+          echo "Creating tag: $TAG_NAME"
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"

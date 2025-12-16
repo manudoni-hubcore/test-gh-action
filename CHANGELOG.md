@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Aggiunta GitHub Action per la creazione automatica di tag al merge di branch `release/*` in `main`
+- Il tag viene estratto dal nome del branch usando una regex per semver2, rimuovendo testo superfluo
+- Prefisso del tag configurabile tramite variabile `TAG_PREFIX` (default: 'release_')
+
 ### Changed
 
 ### Deprecated
@@ -18,6 +22,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+
+## [0.0.5] - 2025-12-16
+
+### Added
+
+- Aggiunta GitHub Action per la creazione automatica di tag al merge di branch `release/*` in `main`
+- Il tag viene estratto dal nome del branch usando una regex per semver2, rimuovendo testo superfluo
+- Prefisso del tag configurabile tramite variabile `TAG_PREFIX` (default: 'release_')
+- Workflow triggered su evento `pull_request` con tipo `closed` per rilevare merge in modo affidabile
 
 ## [0.0.4] - 2025-12-16
 
