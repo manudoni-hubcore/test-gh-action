@@ -16,16 +16,30 @@ on:
     types: [closed]
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: 'Source branch to merge from'
+        required: false
+        default: 'main'
+      target_branch:
+        description: 'Target branch to merge into'
+        required: false
+        default: 'preprod'
 
 jobs:
   sync-branches:
-    # Only run if the PR was merged (not just closed)
-    if: github.event.pull_request.merged == true
+    # Only run if the PR was merged (not just closed) or triggered manually
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     permissions:
       contents: write
       pull-requests: write
+
+    env:
+      SOURCE_BRANCH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.source_branch || 'main' }}
+      TARGET_BRANCH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target_branch || 'preprod' }}
 
     steps:
       - name: Checkout repository
@@ -47,10 +61,10 @@ jobs:
         id: auto-merge
         run: |
           # Checkout the target branch
-          git checkout preprod
+          git checkout ${{ env.TARGET_BRANCH }}
 
-          # Attempt to merge main into preprod
-          if git merge main --no-edit -m "chore: merge main into preprod after release"; then
+          # Attempt to merge source into target
+          if git merge ${{ env.SOURCE_BRANCH }} --no-edit -m "chore: merge ${{ env.SOURCE_BRANCH }} into ${{ env.TARGET_BRANCH }} after release"; then
             echo "merge_status=success" >> $GITHUB_OUTPUT
             echo "Merge successful"
           else
@@ -63,8 +77,8 @@ jobs:
       - name: Push successful merge
         if: steps.auto-merge.outputs.merge_status == 'success'
         run: |
-          git push origin preprod
-          echo "Successfully pushed merge to preprod"
+          git push origin ${{ env.TARGET_BRANCH }}
+          echo "Successfully pushed merge to ${{ env.TARGET_BRANCH }}"
 
       - name: Create fallback branch on conflict
         if: steps.auto-merge.outputs.merge_status == 'failed'
@@ -75,11 +89,11 @@ jobs:
           FALLBACK_BRANCH="release-sync-${TIMESTAMP}"
           echo "fallback_branch=${FALLBACK_BRANCH}" >> $GITHUB_OUTPUT
 
-          # Create and checkout the fallback branch from preprod
-          git checkout -b ${FALLBACK_BRANCH} preprod
+          # Create and checkout the fallback branch from target
+          git checkout -b ${FALLBACK_BRANCH} ${{ env.TARGET_BRANCH }}
 
           # Attempt merge with fallback message
-          git merge main --no-edit -m "chore: fallback merge main into ${FALLBACK_BRANCH}" || true
+          git merge ${{ env.SOURCE_BRANCH }} --no-edit -m "chore: fallback merge ${{ env.SOURCE_BRANCH }} into ${FALLBACK_BRANCH}" || true
 
           # Push the fallback branch
           git push origin ${FALLBACK_BRANCH}
@@ -94,15 +108,15 @@ jobs:
 
           # Create PR using GitHub CLI
           gh pr create \
-            --base preprod \
+            --base ${{ env.TARGET_BRANCH }} \
             --head ${FALLBACK_BRANCH} \
-            --title "chore: resolve merge conflicts from main to preprod" \
+            --title "chore: resolve merge conflicts from ${{ env.SOURCE_BRANCH }} to ${{ env.TARGET_BRANCH }}" \
             --body "## Automatic Merge Conflict Resolution Required
 
-          This PR was automatically created because the automatic merge from \`main\` to \`preprod\` failed due to conflicts.
+          This PR was automatically created because the automatic merge from \`${{ env.SOURCE_BRANCH }}\` to \`${{ env.TARGET_BRANCH }}\` failed due to conflicts.
 
-          **Source Branch:** \`main\`
-          **Target Branch:** \`preprod\`
+          **Source Branch:** \`${{ env.SOURCE_BRANCH }}\`
+          **Target Branch:** \`${{ env.TARGET_BRANCH }}\`
           **Fallback Branch:** \`${FALLBACK_BRANCH}\`
 
           ### Action Required
@@ -125,7 +139,7 @@ jobs:
           body: |
             ✅ **Branch Sync Successful**
 
-            The branch `main` has been automatically merged into `preprod` without conflicts.
+            The branch `${{ env.SOURCE_BRANCH }}` has been automatically merged into `${{ env.TARGET_BRANCH }}` without conflicts.
 
       - name: Comment on original PR (conflict)
         if: steps.auto-merge.outputs.merge_status == 'failed'
@@ -136,7 +150,7 @@ jobs:
           body: |
             ⚠️ **Branch Sync Requires Manual Intervention**
 
-            The automatic merge from `main` to `preprod` failed due to conflicts.
+            The automatic merge from `${{ env.SOURCE_BRANCH }}` to `${{ env.TARGET_BRANCH }}` failed due to conflicts.
 
             A fallback branch `${{ steps.fallback.outputs.fallback_branch }}` has been created.
             Please check the new PR for resolving these conflicts.
