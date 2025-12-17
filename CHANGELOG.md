@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD024 -->
 # Changelog
 
 All notable changes to this project will be documented in this file.
@@ -18,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+
+## [0.0.7] - 2025-12-16
+
+### Added
+
+- Aggiunto supporto per esecuzione manuale del workflow `sync_branches` tramite `workflow_dispatch`
+- Parametri configurabili `source_branch` e `target_branch` per merge dinamico tra branch personalizzati
+
+### Changed
+
+- Parametrizzati i nomi dei branch nel workflow `sync_branches` (non più hardcoded su `main` e `preprod`)
+- Il workflow ora utilizza variabili d'ambiente `SOURCE_BRANCH` e `TARGET_BRANCH` per maggiore flessibilità
+- Tutti i messaggi e commenti ora utilizzano i nomi dei branch parametrizzati
 
 ## [0.0.6] - 2025-12-16
 
